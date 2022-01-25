@@ -7,12 +7,15 @@
 #include "material.h"
 
 #include "Timer.h"
+#include "image.h"
 
 #include <iostream>
 #include <fstream>
 #include <windows.h>
 #include <chrono>
 #include <thread>
+#include <string>
+#include <omp.h>
 
 
 color ray_color(const ray& r, const hittable& world, int depth)
@@ -35,7 +38,9 @@ color ray_color(const ray& r, const hittable& world, int depth)
 	// Sky gradient
 	vec3 unit_direction = unit_vector(r.direction());
 	auto t = 0.5 * (unit_direction.y() + 1.0);
+
 	return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
+	// return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.9, 0.6, 0.2);
 }
 
 hittable_list random_scene()
@@ -56,7 +61,7 @@ hittable_list random_scene()
 			{
 				shared_ptr<material> sphere_material;
 
-				if (choose_mat < 0.8)
+				if (choose_mat < 0.6)
 				{
 					// Diffuse
 					auto albedo = color::random() * color::random();
@@ -64,7 +69,7 @@ hittable_list random_scene()
 					world.add(make_shared<sphere>(center, 0.2, sphere_material));
 				}
 				
-				else if (choose_mat < 0.95)
+				else if (choose_mat < 0.9)
 				{
 					// Metal
 					auto albedo = color::random(0.5, 1);
@@ -95,22 +100,36 @@ hittable_list random_scene()
 	return world;
 }
 
+
+void sum(color* out, color* in)
+{
+	*out += *in;
+}
+
+//#pragma omp declare reduction( + : vec3 : omp_out + omp_in) \
+//								initializer( omp_priv = {0, 0, 0} )
+
+
 int main()
 {
+	// Output
 	std::ofstream image("image.ppm");
+
 
 	// Image
 	const double aspect_ratio = 16.0 / 9.0;
-	const int image_width = 400;
+	const int image_width = 1280;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
-	const int samples_per_pixel = 25;
-	const int max_depth = 25;
+	const int samples_per_pixel = 40;
+	const int max_depth = 15;
+
 
 	// World
 	hittable_list world = random_scene();
 
+
 	// Camera
-	point3 lookfrom(13, 2, 3);
+	point3 lookfrom(10, 3, 7);
 	point3 lookat(0, 0, 0);
 	vec3 vup(0, 1, 0);
 	double aperture = 0.1;
@@ -118,27 +137,34 @@ int main()
 
 	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
+
 	// Render
 	image << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-
 	{
 		Timer timer;
+		color pixels_row[image_width];
+
 		for (int j = image_height - 1; j >= 0; --j)
 		{
 			std::cerr << "\rTime passed: " << timer.now() << "ms" << " - " << j << ' ' << std::flush;
+			#pragma omp parallel for \
+				default(none) \
+				shared(pixels_row, image_width, image_height, samples_per_pixel, world, cam, j) \
+				num_threads(omp_get_num_procs())
 			for (int i = 0; i < image_width; ++i)
 			{
-				color pixel_color(0, 0, 0);
 				for (int s = 0; s < samples_per_pixel; ++s)
 				{
 					auto u = (i + random_double()) / (image_width - 1);
 					auto v = (j + random_double()) / (image_height - 1);
 
 					ray r = cam.get_ray(u, v);
-					pixel_color = pixel_color + ray_color(r, world, max_depth);
+
+					// #pragma omp critical
+					pixels_row[i] += (ray_color(r, world, max_depth));
 				}
-				write_color(image, pixel_color, samples_per_pixel);
 			}
+			write_color(image, pixels_row, image_width, samples_per_pixel);
 		}
 	}
 

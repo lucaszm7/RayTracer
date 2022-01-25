@@ -11,12 +11,20 @@ using std::sqrt;
 
 struct vec3
 {
-
+public:
 	double e[3];
 
 	vec3() : e{0, 0, 0} {}
 
 	vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
+
+	bool operator == (const vec3& other) 
+	{
+		return e[0] == other.e[0] && e[1] == other.e[1] && e[2] == other.e[2];
+	}
+
+	vec3(const vec3& v) = default;
+	vec3& operator=(const vec3& v) = default;
 
 	double x() const { return e[0]; }
 	double y() const { return e[1]; }
@@ -27,11 +35,16 @@ struct vec3
 	double operator [] (int i) const { return e[i]; }
 	double& operator [] (int i) { return e[i]; }
 
-	vec3& operator += (vec3& v)
+	vec3 operator + (const vec3& v) const
 	{
-		e[0] += v.e[0];
-		e[1] += v.e[1];
-		e[2] += v.e[2];
+		return vec3(e[0] + v.e[0], e[1] + v.e[1], e[2] + v.e[2]);
+	}
+
+	vec3& operator += (const vec3& v)
+	{
+		this->e[0] += v.e[0];
+		this->e[1] += v.e[1];
+		this->e[2] += v.e[2];
 		return *this;
 	}
 
@@ -88,11 +101,6 @@ using color = vec3;
 inline std::ostream& operator << (std::ostream& out, const vec3& v)
 {
 	return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
-}
-
-inline vec3 operator + (vec3 u, vec3 v)
-{
-	return vec3(u.e[0] + v.e[0], u.e[1] + v.e[1], u.e[2] + v.e[2]);
 }
 
 inline vec3 operator - (vec3 u, vec3 v)
