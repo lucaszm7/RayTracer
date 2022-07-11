@@ -118,9 +118,8 @@ int main()
 
 	// Image
 	constexpr double aspect_ratio = 16.0 / 9.0;
-	constexpr int image_width = 600;
+	constexpr int image_width = 200;
 	constexpr int image_height = static_cast<int>(image_width / aspect_ratio);
-	constexpr auto CHUNK = image_height / 64;
 	const int samples_per_pixel = 20;
 	const int max_depth = 10;
 
@@ -146,11 +145,15 @@ int main()
 	{
 		Timer timer;
 		#pragma omp parallel for \
-			schedule(dynamic, CHUNK) \
+			schedule(dynamic, 1) \
 			shared(std::cerr, timer, pixels, image_width, image_height, samples_per_pixel, world, cam) \
 			num_threads(omp_get_num_procs())
 		for (int j = image_height - 1; j >= 0; --j)
 		{
+			if(omp_get_thread_num() == 0)
+			{
+				printf("\rTime taken: %.4fs", timer.now());
+			}
 			for (int i = 0; i < image_width; ++i)
 			{
 				for (int s = 0; s < samples_per_pixel; ++s)
@@ -162,7 +165,6 @@ int main()
 
 					pixels[i][j] += (ray_color(r, world, max_depth));
 				}
-				// std::cout << pixels[i][j] << "\n";
 			}
 		}
 	}
@@ -172,7 +174,7 @@ int main()
 	image.close();
 	std::cout << "Finished!" << std::endl;
 
-	ShellExecute(0, 0, L"image.ppm", 0, 0, SW_SHOW);
+	// ShellExecute(0, 0, L"image.ppm", 0, 0, SW_SHOW);
 
 	delete[] pixels;
 

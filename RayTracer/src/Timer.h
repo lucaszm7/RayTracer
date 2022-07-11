@@ -22,7 +22,7 @@ struct Timer
 	double now()
 	{
 		duration = std::chrono::high_resolution_clock::now() - start;
-		return duration.count() * 1000.0;
+		return duration.count();
 	}
 
 };
