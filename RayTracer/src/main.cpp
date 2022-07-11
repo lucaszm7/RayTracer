@@ -118,7 +118,7 @@ int main()
 
 	// Image
 	constexpr double aspect_ratio = 16.0 / 9.0;
-	constexpr int image_width = 200;
+	constexpr int image_width = 600;
 	constexpr int image_height = static_cast<int>(image_width / aspect_ratio);
 	constexpr auto CHUNK = image_height / 64;
 	const int samples_per_pixel = 20;
@@ -172,7 +172,7 @@ int main()
 	image.close();
 	std::cout << "Finished!" << std::endl;
 
-	// ShellExecute(0, 0, L"image.ppm", 0, 0, SW_SHOW);
+	ShellExecute(0, 0, L"image.ppm", 0, 0, SW_SHOW);
 
 	delete[] pixels;
 
