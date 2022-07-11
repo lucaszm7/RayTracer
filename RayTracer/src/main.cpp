@@ -117,11 +117,12 @@ int main()
 
 
 	// Image
-	const double aspect_ratio = 16.0 / 9.0;
-	const int image_width = 1280;
-	const int image_height = static_cast<int>(image_width / aspect_ratio);
-	const int samples_per_pixel = 40;
-	const int max_depth = 15;
+	constexpr double aspect_ratio = 16.0 / 9.0;
+	constexpr int image_width = 200;
+	constexpr int image_height = static_cast<int>(image_width / aspect_ratio);
+	constexpr auto CHUNK = image_height / 64;
+	const int samples_per_pixel = 20;
+	const int max_depth = 10;
 
 
 	// World
@@ -129,28 +130,27 @@ int main()
 
 
 	// Camera
-	point3 lookfrom(10, 3, 7);
+	point3 lookfrom(12, 3, 10);
 	point3 lookat(0, 0, 0);
 	vec3 vup(0, 1, 0);
 	double aperture = 0.1;
 	double dist_to_focus = 10.0;
-
 	camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
-
+	
+	// Image Buffer
+	auto pixels = new color[image_width][image_height];
 
 	// Render
 	image << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
 	{
 		Timer timer;
-		color pixels_row[image_width];
-
+		#pragma omp parallel for \
+			schedule(dynamic, CHUNK) \
+			shared(std::cerr, timer, pixels, image_width, image_height, samples_per_pixel, world, cam) \
+			num_threads(omp_get_num_procs())
 		for (int j = image_height - 1; j >= 0; --j)
 		{
-			std::cerr << "\rTime passed: " << timer.now() << "ms" << " - " << j << ' ' << std::flush;
-			#pragma omp parallel for \
-				default(none) \
-				shared(pixels_row, image_width, image_height, samples_per_pixel, world, cam, j) \
-				num_threads(omp_get_num_procs())
 			for (int i = 0; i < image_width; ++i)
 			{
 				for (int s = 0; s < samples_per_pixel; ++s)
@@ -160,17 +160,21 @@ int main()
 
 					ray r = cam.get_ray(u, v);
 
-					// #pragma omp critical
-					pixels_row[i] += (ray_color(r, world, max_depth));
+					pixels[i][j] += (ray_color(r, world, max_depth));
 				}
+				// std::cout << pixels[i][j] << "\n";
 			}
-			write_color(image, pixels_row, image_width, samples_per_pixel);
 		}
 	}
 
+	std::cout << "Writing to file..." << std::endl;
+	write_color<image_height>(image, pixels, image_width, image_height, samples_per_pixel);
 	image.close();
+	std::cout << "Finished!" << std::endl;
 
-	ShellExecute(0, 0, L"image.ppm", 0, 0, SW_SHOW);
+	// ShellExecute(0, 0, L"image.ppm", 0, 0, SW_SHOW);
+
+	delete[] pixels;
 
 	std::cin.get();
 }
