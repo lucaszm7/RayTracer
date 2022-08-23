@@ -7,7 +7,6 @@
 #include "material.h"
 
 #include "Timer.h"
-#include "image.h"
 
 #include <iostream>
 #include <fstream>
@@ -40,8 +39,8 @@ color ray_color(const ray& r, const hittable& world, int depth)
 	auto t = 0.5 * (unit_direction.y() + 1.0);
 
 	return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
-	// return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.9, 0.6, 0.2);
 }
+
 
 hittable_list random_scene()
 {
@@ -101,15 +100,6 @@ hittable_list random_scene()
 }
 
 
-void sum(color* out, color* in)
-{
-	*out += *in;
-}
-
-//#pragma omp declare reduction( + : vec3 : omp_out + omp_in) \
-//								initializer( omp_priv = {0, 0, 0} )
-
-
 int main()
 {
 	// Output
@@ -118,7 +108,7 @@ int main()
 
 	// Image
 	constexpr double aspect_ratio = 16.0 / 9.0;
-	constexpr int image_width = 200;
+	constexpr int image_width = 400;
 	constexpr int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int samples_per_pixel = 20;
 	const int max_depth = 10;

@@ -9,6 +9,7 @@ struct Timer
 	std::chrono::duration<double> duration;
 
 	Timer()
+		: duration(0)
 	{
 		start = std::chrono::high_resolution_clock::now();
 	}
